@@ -13,7 +13,8 @@ def ytb_search(q, saving_path):
                                     q=q,
                                     order="date",
                                     publishedBefore='2019-08-03T00:00:00Z',
-                                    publishedAfter='2019-07-27T00:00:00Z'
+                                    publishedAfter='2019-07-27T00:00:00Z',
+                                    type="video"
                                     )
     response = request.execute()
     next_page_token = response['nextPageToken']
@@ -24,10 +25,35 @@ def ytb_search(q, saving_path):
                                       order="date",
                                       publishedBefore='2019-08-03T00:00:00Z',
                                       publishedAfter='2019-07-27T00:00:00Z',
+                                      type="video",
                                       pageToken=next_page_token)
     response_2 = request_2.execute()
+    next_page_token = response_2['nextPageToken']
 
-    response['items'] = response['items'] + response_2['items']
+    request_3 = youtube.search().list(part="snippet",
+                                      maxResults=50,
+                                      q=q,
+                                      order="date",
+                                      publishedBefore='2019-08-03T00:00:00Z',
+                                      publishedAfter='2019-07-27T00:00:00Z',
+                                      type="video",
+                                      pageToken=next_page_token
+                                      )
+    response_3 = request_3.execute()
+    next_page_token = response_3['nextPageToken']
+
+    request_4 = youtube.search().list(part="snippet",
+                                      maxResults=50,
+                                      q=q,
+                                      order="date",
+                                      publishedBefore='2019-08-03T00:00:00Z',
+                                      publishedAfter='2019-07-27T00:00:00Z',
+                                      type="video",
+                                      pageToken=next_page_token
+                                      )
+    response_4 = request_4.execute()
+
+    response['items'] = response['items'] + response_2['items'] + response_3['items'] + response_4['items'] 
     video_info = []
     video_num =len(response['items'])
     print("    {} videos found".format(video_num))
@@ -42,6 +68,12 @@ def ytb_search(q, saving_path):
 
     video_df = pd.DataFrame(video_info)[['videoId', 'publishedAt', 'channelId', 
                                         'channelTitle', 'title', 'description']]
+    video_df_uoff = video_df[(video_df.channelId != 'UCPde4guD9yFBRzkxk2PatoA') &
+                             (video_df.channelId != 'UCS_hnpJLQTvBkqALgapi_4g') &
+                             (video_df.channelId != 'UCeLPm9yH_a_QH8n6445G-Ow') &
+                             (video_df.channelId != 'UCG-coSVp89xFSWN4pbVL53w') &
+                             (video_df.channelId != 'UCZ2gVH8X4ukWLRZ5yDda_4w')
+                            ]
     video_df.to_csv(saving_path.joinpath(q+'.csv'), index=None, encoding='utf-8')
 
 
@@ -62,15 +94,19 @@ if __name__ == '__main__':
     credentials = flow.run_console()
     youtube = googleapiclient.discovery.build(
         api_service_name, api_version, credentials=credentials)
-    saving_path = Path('./ytb_result')
-    keywords = ['nct dream', 'boom', 'reaction', 'dance', 'cover', 'lyrics', 
-                'sub', 'audio', 'mix', 'mashup', 'edited', 'fan', 'renjun', 
+    saving_path = Path('./ytb_result_2')
+    keywords = [
+                'nct dream', 'boom', 'nct dream AND reaction', 
+                'nct dream AND dance', 'nct dream AND cover', 
+                'nct dream AND lyrics', 'nct dream AND sub', 
+                'nct dream AND audio', 'nct dream AND mix', 
+                'nct dream AND mashup'
+                'nct dream AND edit', 
+                'nct dream AND fan', 'nct dream AND fancam', 'renjun', 
                 'jeno', 'haechan', 'jaemin', 'jisung', 'chenle',
-                '#nctdream', '#boom', '#we_boom', '#renjun', '#jeno', 
+                '#nctdream', '#boom', 
+                '#we_boom', '#renjun', '#jeno', 
                 '#haechan', '#jaemin', '#jisung', '#chenle']
     for keyword in keywords:
         print("Searching {}".format(keyword))
         ytb_search(q=keyword, saving_path=saving_path)
-
-
-
